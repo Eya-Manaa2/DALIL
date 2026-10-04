@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-plex), 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-heading: var(--font-readex), 'Readex Pro', system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Palette: Tunisian flag colors - Red, White, Gold accent */
+:root {
+  color-scheme: light;
+  --background: oklch(0.99 0.004 90);
+  --foreground: oklch(0.24 0.04 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.04 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.04 255);
+  --primary: oklch(0.55 0.22 25); /* Tunisian Red */
+  --primary-foreground: oklch(0.99 0.004 90);
+  --secondary: oklch(0.955 0.018 85);
+  --secondary-foreground: oklch(0.24 0.04 255);
+  --muted: oklch(0.93 0.015 85);
+  --muted-foreground: oklch(0.45 0.03 255);
+  --accent: oklch(0.75 0.12 85); /* Gold accent */
+  --accent-foreground: oklch(0.24 0.04 255);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.015 85);
+  --input: oklch(0.9 0.015 85);
+  --ring: oklch(0.55 0.22 25);
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+}
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--muted);
+}
+.map-office {
+  stroke: var(--card);
+  fill: var(--primary);
+}
+.map-office-active {
+  fill: var(--accent);
+  stroke: var(--foreground);
+}
+.map-you {
+  stroke: var(--card);
+  fill: var(--destructive);
+}
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  html,
+  body {
+    background: var(--card);
+  }
+  footer:not(article footer) {
+    display: none;
+  }
+}
