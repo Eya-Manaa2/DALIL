@@ -21,11 +21,16 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ error: 'invalid_report' }, { status: 400 })
 
   const r = parsed.data
-  await db.insert(fieldReports).values({
-    officeName: r.officeName,
-    governorate: r.governorate,
-    kind: r.kind,
-    details: r.details || null,
-  })
+  try {
+    await db.insert(fieldReports).values({
+      officeName: r.officeName,
+      governorate: r.governorate,
+      kind: r.kind,
+      details: r.details || null,
+    })
+  } catch (error) {
+    console.error('[reports]', error)
+    return Response.json({ error: 'storage_unavailable' }, { status: 503 })
+  }
   return Response.json({ ok: true }, { status: 201 })
 }

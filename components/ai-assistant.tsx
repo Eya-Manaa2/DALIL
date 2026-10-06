@@ -99,7 +99,6 @@ export function AiAssistant() {
         })
       }
       
-      console.log('[SpeechSynthesis] Available voices:', voices.length)
       
       // Try to find a matching voice
       let lang = isArabic ? 'ar' : 'fr-FR'
@@ -124,7 +123,6 @@ export function AiAssistant() {
         }
       }
       
-      console.log('[SpeechSynthesis] Using voice:', voice?.name, 'Lang:', lang)
       
       // Limit text length to avoid browser timeout
       const maxLength = 300
@@ -138,12 +136,10 @@ export function AiAssistant() {
       u.volume = 1
       
       u.onend = () => {
-        console.log('[SpeechSynthesis] Finished')
         setPlayback(null)
       }
       u.onerror = (e) => {
-        console.error('[SpeechSynthesis] Error:', e.error)
-        setPlayback(null)
+          setPlayback(null)
       }
       
       // Small delay to ensure speech synthesis is ready
@@ -178,46 +174,17 @@ export function AiAssistant() {
   const uploadRecording = async (blob: Blob) => {
     setRecState('transcribing')
     try {
-      // Try browser SpeechRecognition API first (free, no API key needed)
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        const recognition = new SpeechRecognition()
-        recognition.lang = lang === 'ar' ? 'ar-TN' : 'fr-FR'
-        recognition.continuous = false
-        
-        const transcript = await new Promise<string>((resolve, reject) => {
-          recognition.onresult = (event: any) => {
-            const text = event.results[0][0].transcript
-            resolve(text)
-          }
-          recognition.onerror = (event: any) => {
-            reject(new Error(event.error))
-          }
-          recognition.onend = () => {
-            if (!recognition.result || recognition.result.length === 0) {
-              reject(new Error('no result'))
-            }
-          }
-          recognition.start()
-        })
-        
-        setAutoRead(true)
-        autoReadRef.current = true
-        setHeard(transcript)
-        void speak('heard', t('aiHeardSpoken').replace('{text}', transcript))
-      } else {
-        // Fallback to server API (requires OpenAI key)
-        const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
-        const form = new FormData()
-        form.append('audio', blob, `message.${ext}`)
-        const res = await fetch('/api/voice/transcribe', { method: 'POST', body: form })
-        const data = (await res.json()) as { text?: string }
-        if (!res.ok || !data.text) throw new Error('empty transcript')
-        setAutoRead(true)
-        autoReadRef.current = true
-        setHeard(data.text)
-        void speak('heard', t('aiHeardSpoken').replace('{text}', data.text))
-      }
+      const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
+      const form = new FormData()
+      form.append('audio', blob, `message.${ext}`)
+      form.append('lang', lang)
+      const res = await fetch('/api/voice/transcribe', { method: 'POST', body: form })
+      const data = (await res.json().catch(() => ({}))) as { text?: string }
+      if (!res.ok || !data.text) throw new Error('empty transcript')
+      setAutoRead(true)
+      autoReadRef.current = true
+      setHeard(data.text)
+      void speak('heard', t('aiHeardSpoken').replace('{text}', data.text))
     } catch {
       setVoiceError(t('aiTranscribeError'))
     } finally {
@@ -250,7 +217,6 @@ export function AiAssistant() {
     
     // Stop recording if currently recording
     if (recState === 'recording') {
-      console.log('[SpeechRecognition] Stopping recording')
       if (recognitionRef.current) {
         recognitionRef.current.stop()
         recognitionRef.current = null
@@ -272,11 +238,12 @@ export function AiAssistant() {
     setVoiceError(null)
     stopPlayback()
     
-    // Use browser SpeechRecognition API first (free, works on Chrome/Edge/Safari)
+    // Whisper (server-side, tuned for darija and program names) is the default; the browser's
+    // recognizer is only used where MediaRecorder is missing.
     const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
-    console.log('[SpeechRecognition] Available:', hasSpeechRecognition)
-    
-    if (hasSpeechRecognition) {
+    const useBrowserRecognition = typeof MediaRecorder === 'undefined' && hasSpeechRecognition
+
+    if (useBrowserRecognition) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       const recognition = new SpeechRecognition()
       recognition.lang = lang === 'ar' ? 'ar-TN' : 'fr-FR'
@@ -284,7 +251,6 @@ export function AiAssistant() {
       recognition.interimResults = false
       
       recognition.onresult = (event: any) => {
-        console.log('[SpeechRecognition] Result:', event.results[0][0].transcript)
         const text = event.results[0][0].transcript
         setAutoRead(true)
         autoReadRef.current = true
@@ -302,7 +268,6 @@ export function AiAssistant() {
       }
       
       recognition.onend = () => {
-        console.log('[SpeechRecognition] Ended')
         setRecState('idle')
         recognitionRef.current = null
       }
@@ -311,7 +276,6 @@ export function AiAssistant() {
       recognition.start()
       setRecState('recording')
       stopTimerRef.current = setTimeout(() => {
-        console.log('[SpeechRecognition] Timeout - stopping')
         if (recognitionRef.current) {
           recognitionRef.current.stop()
           recognitionRef.current = null
@@ -319,8 +283,6 @@ export function AiAssistant() {
         setRecState('idle')
       }, MAX_RECORDING_MS)
     } else {
-      console.log('[SpeechRecognition] Not available, using Groq fallback')
-      // Fallback to Groq API (free tier: 2,000 requests/day)
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         const mimeType = ['audio/webm', 'audio/mp4', 'audio/ogg'].find((m) => MediaRecorder.isTypeSupported(m))

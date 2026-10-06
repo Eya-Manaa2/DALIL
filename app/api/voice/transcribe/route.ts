@@ -3,9 +3,11 @@ import { checkRateLimit, limits, tooManyRequests } from '@/lib/rate-limit'
 export const maxDuration = 30
 
 const MAX_BYTES = 4 * 1024 * 1024
+const GROQ_URL = 'https://api.groq.com/openai/v1/audio/transcriptions'
 
 // Biases the model toward Tunisian darija (often mixed with French) and the proper nouns
 // users actually say: programs, funds, and governorates that generic models tend to mishear.
+// Only sent in Arabic mode: an Arabic prompt makes Whisper transcribe French speech as Arabic.
 const TUNISIAN_VOCABULARY_HINT = [
   'علامة، نحب نسأل على المساعدات الاجتماعية في تونس.',
   'الكرني الأبيض، بطاقة العلاج، الأمان الاجتماعي، المنحة، بطاقة الإعاقة.',
@@ -13,13 +15,20 @@ const TUNISIAN_VOCABULARY_HINT = [
   'تونس، أريانة، بن عروس، منوبة، نابل، زغوان، بنزرت، باجة، جندوبة، الكاف، سليانة.',
 ].join(' ')
 
+const FRENCH_VOCABULARY_HINT =
+  'Bonjour, je cherche une aide sociale en Tunisie : AMEN Social, carnet blanc, carte de soins, carte handicap, CNSS, CNAM, CNRPS.'
+
 export async function POST(req: Request) {
-  // Rate limit check - fail open if database is unavailable
-  const rateLimitOk = await checkRateLimit(req, limits.transcribe).catch(() => true)
-  if (!rateLimitOk) return tooManyRequests()
-  
-  const form = await req.formData()
-  const audio = form.get('audio')
+  if (!(await checkRateLimit(req, limits.transcribe))) return tooManyRequests()
+
+  if (!process.env.GROQ_API_KEY) {
+    console.error('[voice/transcribe] GROQ_API_KEY is not set')
+    return Response.json({ error: 'transcription_unavailable' }, { status: 503 })
+  }
+
+  const form = await req.formData().catch(() => null)
+  const audio = form?.get('audio')
+  const lang = form?.get('lang') === 'fr' ? 'fr' : 'ar'
 
   if (!(audio instanceof Blob) || audio.size === 0) {
     return Response.json({ error: 'missing_audio' }, { status: 400 })
@@ -31,29 +40,30 @@ export async function POST(req: Request) {
     return Response.json({ error: 'invalid_audio_type' }, { status: 415 })
   }
 
+  const body = new FormData()
+  body.append('file', audio)
+  body.append('model', 'whisper-large-v3-turbo')
+  if (lang === 'fr') {
+    body.append('language', 'fr')
+    body.append('prompt', FRENCH_VOCABULARY_HINT)
+  } else {
+    // Darija mixes Arabic and French, so the language is left to auto-detection.
+    body.append('prompt', TUNISIAN_VOCABULARY_HINT)
+  }
+
   try {
-    // Use Groq API directly for transcription
-    const formData = new FormData()
-    formData.append('file', audio)
-    formData.append('model', 'whisper-large-v3-turbo')
-    formData.append('prompt', TUNISIAN_VOCABULARY_HINT)
-    
-    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: formData,
+      headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
+      body,
+      signal: AbortSignal.timeout(25_000),
     })
-    
     if (!response.ok) {
-      const error = await response.text()
-      console.error('[voice/transcribe] Groq error:', error)
-      throw new Error('Groq transcription failed')
+      console.error('[voice/transcribe] Groq error', response.status, await response.text())
+      return Response.json({ error: 'transcription_failed' }, { status: 502 })
     }
-    
-    const data = await response.json()
-    return Response.json({ text: data.text.trim() })
+    const data = (await response.json()) as { text?: string }
+    return Response.json({ text: (data.text ?? '').trim() })
   } catch (error) {
     console.error('[voice/transcribe]', error)
     return Response.json({ error: 'transcription_failed' }, { status: 502 })
