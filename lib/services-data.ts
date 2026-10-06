@@ -305,3 +305,23 @@ export function matchServices(audience: Audience | null, selectedNeeds: Need[]) 
     .sort((a, b) => b.score - a.score)
     .map((r) => r.s)
 }
+
+// Informations sur les institutions connexes (non affichées dans le catalogue mais utilisées par l'assistant)
+export const relatedInstitutions = {
+  ccp: {
+    fr: 'Le CCP (Centre de Chèques Postaux) est géré par La Poste Tunisienne, pas par le ministère des Affaires sociales. Pour suivre votre compte CCP en ligne : allez sur poste.tn ou utilisez l\'application mobile La Poste. Plusieurs aides sociales (AMEN Social, pensions) sont versées sur CCP. Pour les questions sur les versements sociaux, contactez l\'Unité locale de promotion sociale.',
+    ar: 'البريد المركزي (CCP) يديره البريد التونسي وليس وزارة الشؤون الاجتماعية. لمتابعة حساب البريد المركزي عن بعد: اذهب إلى poste.tn أو استعمل تطبيق البريد التونسي. برشا مساعدات اجتماعية (الأمان الاجتماعي، المعاشات) تصرف على CCP. للأسئلة على الصرف الاجتماعي، اتصل بالوحدة المحلية للنهوض الاجتماعي.',
+  },
+  cnss: {
+    fr: 'La CNSS (Caisse Nationale de Sécurité Sociale) gère les allocations familiales pour les salariés. Site : cnss.tn. Ce n\'est pas géré par le ministère des Affaires sociales. Pour s\'affilier ou demander des allocations, contactez votre bureau CNSS.',
+    ar: 'الصندوق الوطني للضمان الاجتماعي (CNSS) يدير المنح العائلية للأجراء. الموقع: cnss.tn. لا يديره وزارة الشؤون الاجتماعية. للانخراط أو طلب المنح، اتصل بمكتب الضمان الاجتماعي.',
+  },
+  cnamps: {
+    fr: 'La CNAMPS (Caisse Nationale d\'Assurance Maladie) gère les soins pour les fonctionnaires et retraités. Site : cnamps.tn. Ce n\'est pas géré par le ministère des Affaires sociales.',
+    ar: 'الصندوق الوطني للتأمين على المرض (CNAMPS) يدير العلاج للموظفين والمتقاعدين. الموقع: cnamps.tn. لا يديره وزارة الشؤون الاجتماعية.',
+  },
+  poste: {
+    fr: 'La Poste Tunisienne gère le CCP et les services postaux. Site : poste.tn. Pour les questions sur les versements sociaux sur CCP, contactez d\'abord l\'Unité locale de promotion sociale pour vérifier votre dossier.',
+    ar: 'البريد التونسي يدير CCP والخدمات البريدية. الموقع: poste.tn. للأسئلة على الصرف الاجتماعي على CCP، اتصل أولا بالوحدة المحلية للنهوض الاجتماعي للتحقق من ملفك.',
+  },
+}

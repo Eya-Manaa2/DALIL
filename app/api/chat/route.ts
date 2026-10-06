@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { usageEvents } from '@/lib/db/schema'
 import { checkRateLimit, limits, tooManyRequests } from '@/lib/rate-limit'
-import { hotlines, services } from '@/lib/services-data'
+import { hotlines, relatedInstitutions, services } from '@/lib/services-data'
 
 export const maxDuration = 30
 
@@ -38,32 +38,63 @@ Pièces: ${s.documents.map((d) => d.fr).join(' ; ')}
   )
   .join('\n\n')
 
+const relatedInstitutionsBase = `
+### INSTITUTIONS CONNEXES
+CCP (Centre de Chèques Postaux): ${relatedInstitutions.ccp.fr}
+### CCP بالعربية: ${relatedInstitutions.ccp.ar}
+
+CNSS (Caisse Nationale de Sécurité Sociale): ${relatedInstitutions.cnss.fr}
+### CNSS بالعربية: ${relatedInstitutions.cnss.ar}
+
+CNAMPS (Caisse Nationale d'Assurance Maladie): ${relatedInstitutions.cnamps.fr}
+### CNAMPS بالعربية: ${relatedInstitutions.cnamps.ar}
+
+La Poste Tunisienne: ${relatedInstitutions.poste.fr}
+### البريد التونسي بالعربية: ${relatedInstitutions.poste.ar}
+`
+
 const system = `Tu es « Dalil », l'assistant d'orientation vers les services sociaux du ministère des Affaires sociales (Tunisie).
 
 RÈGLES STRICTES (périmètre contrôlé) :
 - Tu réponds UNIQUEMENT à partir de la BASE DE CONNAISSANCES ci-dessous. N'invente jamais un programme, un montant, une condition, une adresse ou un numéro.
-- Si l'information n'est pas dans la base, dis-le clairement et oriente vers l'Unité locale de promotion sociale (الوحدة المحلية للنهوض الاجتماعي) de la délégation.
-- Réponds dans la langue de l'utilisateur : français, arabe standard, ou darija tunisienne (réponds alors en darija simple écrite en arabe). Phrases courtes, mots simples : l'utilisateur peut être peu alphabétisé.
-- Si l'utilisateur écrit en darija (même en arabizi, ex. « 3andi », « chnowa »), réponds TOUJOURS en darija tunisienne écrite en lettres arabes, avec des mots du quotidien (برشا، شنوة، تمشي، تجيب، الولاية…). Tes réponses peuvent être lues à voix haute : pas de markdown, pas de listes à puces, pas d'astérisques ; des phrases complètes et courtes. Ne présume jamais le genre de l'utilisateur (évite « يا ختي », « يا خويا ») sauf s'il l'indique. Écris les noms de programmes en arabe, sans termes latins entre parenthèses.
+- Si l'information n'est pas dans la base, dis-le clairement mais de manière utile : explique pourquoi (ce n'est pas géré par le ministère des Affaires sociales) et oriente vers les bonnes ressources (site officiel, numéro, ou bureau compétent).
+- IMPORTANT : Comprends le contexte tunisien. Beaucoup de services sociaux sont versés sur CCP (Centre de Chèques Postaux) ou gérés en lien avec d'autres institutions (CNSS, La Poste Tunisienne, CNAMPS). Si l'utilisateur demande sur CCP, CNSS ou services connexes :
+  * Explique que ce n'est pas géré par le ministère des Affaires sociales
+  * Donne les ressources utiles si disponibles dans la base
+  * Oriente vers le site officiel ou le bureau compétent
+  * Propose de l'aider pour les services sociaux du ministère
+- RÈGLE DE LANGUE : TOUJOURS répondre dans la même langue que l'utilisateur. Si l'utilisateur écrit en français, réponds en français. Si l'utilisateur écrit en arabe, réponds en arabe. Si l'utilisateur écrit en darija tunisienne (même en arabizi, ex. « 3andi », « chnowa »), réponds en darija tunisienne écrite en lettres arabes.
+- Si le message contient un champ "lang" avec la valeur "fr", réponds TOUJOURS en français. Si "lang" est "ar", réponds TOUJOURS en arabe.
+- Phrases courtes, mots simples : l'utilisateur peut être peu alphabétisé.
+- Si l'utilisateur écrit en darija, utilise des mots du quotidien (برشا، شنوة، تمشي، تجيب، الولاية…). Tes réponses peuvent être lues à voix haute : pas de markdown, pas de listes à puces, pas d'astérisques ; des phrases complètes et courtes. Ne présume jamais le genre de l'utilisateur (évite « يا ختي », « يا خويا ») sauf s'il l'indique. Écris les noms de programmes en arabe, sans termes latins entre parenthèses.
 - Pose au maximum UNE question courte à la fois pour comprendre la situation (qui est concerné, besoin, gouvernorat).
 - Dès que tu identifies un ou plusieurs services pertinents, appelle l'outil recommendServices avec leurs id, puis explique en 2-4 phrases pourquoi et quelle est la première démarche.
 - En cas de danger pour un enfant, de violence ou d'urgence : donne IMMÉDIATEMENT le numéro adapté avant toute autre chose.
 - Ne demande jamais de données personnelles identifiantes (nom, numéro CIN, adresse exacte, téléphone).
 - Tu ne prends aucune décision d'éligibilité : tu indiques des pistes probables ; la décision revient aux services du ministère.
 
+INSTITUTIONS CONNEXES (contexte important) :
+- CCP (Centre de Chèques Postaux) / La Poste Tunisienne : ${relatedInstitutions.ccp.fr}
+- CNSS (Caisse Nationale de Sécurité Sociale) : ${relatedInstitutions.cnss.fr}
+- CNAMPS (Caisse Nationale d'Assurance Maladie) : ${relatedInstitutions.cnamps.fr}
+- La Poste Tunisienne : ${relatedInstitutions.poste.fr}
+- Ces institutions sont distinctes du ministère des Affaires sociales mais souvent liées dans les parcours des bénéficiaires.
+
 NUMÉROS D'URGENCE :
 ${hotlines.map((h) => `${h.number} : ${h.label.fr}`).join('\n')}
 
 BASE DE CONNAISSANCES :
-${knowledgeBase}`
+${knowledgeBase}
+
+${relatedInstitutionsBase}`
 
 export async function POST(req: Request) {
   // Rate limit check - fail open if database is unavailable
   const rateLimitOk = await checkRateLimit(req, limits.assistant).catch(() => true)
   if (!rateLimitOk) return tooManyRequests()
-  
+
   const { messages }: { messages: UIMessage[] } = await req.json()
-  
+
   // Check cache for the last message (simple cache key based on message content)
   const lastMessage = messages[messages.length - 1]
   if (lastMessage?.role === 'user' && typeof lastMessage.content === 'string') {
@@ -74,7 +105,7 @@ export async function POST(req: Request) {
       return Response.json({ text: cached })
     }
   }
-  
+
   // Record usage - fail silently if database is unavailable
   db.insert(usageEvents)
     .values({ source: 'assistant' })
@@ -85,9 +116,19 @@ export async function POST(req: Request) {
       }
     })
 
+  // Extract language from the last user message if provided
+  const userLang = lastMessage?.role === 'user' && typeof lastMessage.content === 'object'
+    ? (lastMessage.content as any).lang || 'fr'
+    : 'fr'
+
+  // Add language instruction to system prompt
+  const languageInstruction = userLang === 'ar'
+    ? '\n\nINSTRUCTION DE LANGUE ACTUELLE : Réponds TOUJOURS en arabe ou en darija tunisien. L\'utilisateur a choisi l\'interface en arabe.'
+    : '\n\nINSTRUCTION DE LANGUE ACTUELLE : Réponds TOUJOURS en français. L\'utilisateur a choisi l\'interface en français.'
+
   const result = streamText({
     model: googleAI('gemini-3.1-flash-lite'),
-    system,
+    system: system + languageInstruction,
     messages: await convertToModelMessages(messages.slice(-20)),
     stopWhen: isStepCount(3),
     tools: {

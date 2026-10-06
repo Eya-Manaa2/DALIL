@@ -171,7 +171,7 @@ export function AiAssistant() {
     const value = text.trim()
     if (!value || busy) return
     stopPlayback()
-    sendMessage({ text: value })
+    sendMessage({ text: value, lang })
     setInput('')
   }
 
