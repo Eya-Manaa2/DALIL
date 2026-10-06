@@ -20,10 +20,6 @@ const googleAI = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 })
 
-// Simple in-memory cache for frequent queries (reduces API calls)
-const responseCache = new Map<string, string>()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-
 const serviceIds = services.map((s) => s.id) as [string, ...string[]]
 
 const knowledgeBase = services
@@ -43,8 +39,10 @@ const system = `Tu es « Dalil », l'assistant d'orientation vers les services s
 RÈGLES STRICTES (périmètre contrôlé) :
 - Tu réponds UNIQUEMENT à partir de la BASE DE CONNAISSANCES ci-dessous. N'invente jamais un programme, un montant, une condition, une adresse ou un numéro.
 - Si l'information n'est pas dans la base, dis-le clairement et oriente vers l'Unité locale de promotion sociale (الوحدة المحلية للنهوض الاجتماعي) de la délégation.
-- Réponds dans la langue de l'utilisateur : français, arabe standard, ou darija tunisienne (réponds alors en darija simple écrite en arabe). Phrases courtes, mots simples : l'utilisateur peut être peu alphabétisé.
-- Si l'utilisateur écrit en darija (même en arabizi, ex. « 3andi », « chnowa »), réponds TOUJOURS en darija tunisienne écrite en lettres arabes, avec des mots du quotidien (برشا، شنوة، تمشي، تجيب، الولاية…). Tes réponses peuvent être lues à voix haute : pas de markdown, pas de listes à puces, pas d'astérisques ; des phrases complètes et courtes. Ne présume jamais le genre de l'utilisateur (évite « يا ختي », « يا خويا ») sauf s'il l'indique. Écris les noms de programmes en arabe, sans termes latins entre parenthèses.
+- LANGUE : réponds TOUJOURS dans la langue du DERNIER message de l'utilisateur. Message en français → réponse entièrement en français (même si la base contient des noms arabes : utilise les titres français). Message en arabe standard → arabe standard. Darija → darija simple écrite en arabe. Phrases courtes, mots simples : l'utilisateur peut être peu alphabétisé.
+- Si l'utilisateur écrit en darija (même en arabizi, ex. « 3andi », « chnowa »), réponds TOUJOURS en darija tunisienne écrite en lettres arabes, avec des mots du quotidien (برشا، شنوة، تمشي، تجيب، الولاية…). Ne présume jamais le genre de l'utilisateur (évite « يا ختي », « يا خويا ») sauf s'il l'indique. Écris les noms de programmes en arabe, sans termes latins entre parenthèses.
+- FORMAT (toutes langues) : tes réponses sont lues à voix haute. Jamais de markdown, de listes, de tirets en début de ligne, de numérotation ni d'astérisques. Pour énumérer des pièces, fais une phrase : « Il faut la CIN, un certificat de résidence et deux photos. »
+- Noms populaires : « carnet blanc » / « الكرني الأبيض » = carte de soins gratuits (amg1) ; « carnet jaune » / « الكرني الأصفر » = carte de soins à tarif réduit (amg2).
 - Pose au maximum UNE question courte à la fois pour comprendre la situation (qui est concerné, besoin, gouvernorat).
 - Dès que tu identifies un ou plusieurs services pertinents, appelle l'outil recommendServices avec leurs id, puis explique en 2-4 phrases pourquoi et quelle est la première démarche.
 - En cas de danger pour un enfant, de violence ou d'urgence : donne IMMÉDIATEMENT le numéro adapté avant toute autre chose.
@@ -58,32 +56,20 @@ BASE DE CONNAISSANCES :
 ${knowledgeBase}`
 
 export async function POST(req: Request) {
-  // Rate limit check - fail open if database is unavailable
-  const rateLimitOk = await checkRateLimit(req, limits.assistant).catch(() => true)
-  if (!rateLimitOk) return tooManyRequests()
-  
-  const { messages }: { messages: UIMessage[] } = await req.json()
-  
-  // Check cache for the last message (simple cache key based on message content)
-  const lastMessage = messages[messages.length - 1]
-  if (lastMessage?.role === 'user' && typeof lastMessage.content === 'string') {
-    const cacheKey = lastMessage.content.toLowerCase().trim()
-    const cached = responseCache.get(cacheKey)
-    if (cached) {
-      console.log('[assistant] Cache hit for:', cacheKey)
-      return Response.json({ text: cached })
-    }
+  if (!(await checkRateLimit(req, limits.assistant))) return tooManyRequests()
+
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    console.error('[assistant] GOOGLE_GENERATIVE_AI_API_KEY is not set')
+    return Response.json({ error: 'assistant_unavailable' }, { status: 503 })
   }
-  
-  // Record usage - fail silently if database is unavailable
+
+  const body = (await req.json().catch(() => null)) as { messages?: UIMessage[] } | null
+  const messages = Array.isArray(body?.messages) ? body.messages : []
+  if (messages.length === 0) return Response.json({ error: 'missing_messages' }, { status: 400 })
+
   db.insert(usageEvents)
     .values({ source: 'assistant' })
-    .catch((error) => {
-      // Silently fail in development or if DB is not configured
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('Database not available - usage tracking disabled')
-      }
-    })
+    .catch((error) => console.error('[assistant] usage tracking failed', error))
 
   const result = streamText({
     model: googleAI('gemini-3.1-flash-lite'),
@@ -101,14 +87,7 @@ export async function POST(req: Request) {
     },
   })
 
-  // Cache the response for future use
-  let fullResponse = ''
   const stream = toUIMessageStream({ stream: result.stream })
-  
-  // Note: In a real implementation, we'd need to collect the full response
-  // For now, this is a simplified cache that works for basic responses
-  
-  return createUIMessageStreamResponse({
-    stream,
-  })
+
+  return createUIMessageStreamResponse({ stream })
 }

@@ -22,12 +22,17 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ error: 'invalid_event' }, { status: 400 })
 
   const e = parsed.data
-  await db.insert(usageEvents).values({
-    source: e.source,
-    audience: e.audience ?? null,
-    needs: e.needs ?? [],
-    governorate: e.governorate ?? null,
-    resultsCount: e.resultsCount ?? null,
-  })
+  try {
+    await db.insert(usageEvents).values({
+      source: e.source,
+      audience: e.audience ?? null,
+      needs: e.needs ?? [],
+      governorate: e.governorate ?? null,
+      resultsCount: e.resultsCount ?? null,
+    })
+  } catch (error) {
+    console.error('[events]', error)
+    return Response.json({ error: 'storage_unavailable' }, { status: 503 })
+  }
   return new Response(null, { status: 204 })
 }

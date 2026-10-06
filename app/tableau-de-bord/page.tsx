@@ -11,11 +11,20 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   await connection()
-  const data = await getDashboardData()
+  const data = await getDashboardData().catch((error) => {
+    console.error('[dashboard]', error)
+    return null
+  })
 
   return (
     <main>
-      <DashboardView data={data} />
+      {data ? (
+        <DashboardView data={data} />
+      ) : (
+        <p className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
+          Les statistiques sont momentanément indisponibles. Réessayez dans quelques minutes.
+        </p>
+      )}
     </main>
   )
 }

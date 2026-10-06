@@ -7,7 +7,6 @@ type Limit = { bucket: string; max: number; windowSeconds: number }
 export const limits = {
   assistant: { bucket: 'assistant', max: 15, windowSeconds: 60 },
   transcribe: { bucket: 'transcribe', max: 10, windowSeconds: 60 },
-  speak: { bucket: 'speak', max: 15, windowSeconds: 60 },
   events: { bucket: 'events', max: 60, windowSeconds: 60 },
   reports: { bucket: 'reports', max: 5, windowSeconds: 3600 },
   nearby: { bucket: 'nearby', max: 30, windowSeconds: 60 },

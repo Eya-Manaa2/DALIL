@@ -1,4 +1,4 @@
-import { integer, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { integer, jsonb, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const rateLimits = pgTable(
   'rate_limits',
@@ -28,4 +28,11 @@ export const fieldReports = pgTable('field_reports', {
   kind: text('kind').notNull(),
   details: text('details'),
   status: text('status').notNull().default('new'),
+})
+
+// Nominatim results per ~10 km grid cell, so each area hits OpenStreetMap at most once a week.
+export const officeCache = pgTable('office_cache', {
+  key: text('key').primaryKey(),
+  offices: jsonb('offices').notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 })

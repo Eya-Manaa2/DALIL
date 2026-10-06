@@ -1,9 +1,16 @@
+import { and, eq, gt } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { officeCache } from '@/lib/db/schema'
 import { officeCategories, type Office, type OfficeCategory } from '@/lib/nearby'
 import { checkRateLimit, limits, tooManyRequests } from '@/lib/rate-limit'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 const USER_AGENT = 'dalil-social-tn/1.0 (guide des services sociaux)'
 const SPAN = 0.5
+const CACHE_MAX_AGE_MS = 7 * 24 * 3600 * 1000
+
+// Ten sequential Nominatim calls (1 req/s usage policy) take ~11 s on a cold cache.
+export const maxDuration = 60
 
 const SEARCHES: { category: OfficeCategory; q: string }[] = [
   { category: 'social', q: 'affaires sociales' },
@@ -47,7 +54,6 @@ async function search(q: string, lat: number, lng: number): Promise<NominatimPla
   const res = await fetch(`${NOMINATIM}?${params}`, {
     headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'fr,ar' },
     signal: AbortSignal.timeout(10000),
-    next: { revalidate: 86400 },
   })
   if (!res.ok) throw new Error(`nominatim_${res.status}`)
   return res.json()
@@ -86,6 +92,22 @@ export async function GET(req: Request) {
   const rLat = Math.round(lat * 10) / 10
   const rLng = Math.round(lng * 10) / 10
 
+  const key = `${rLat.toFixed(1)},${rLng.toFixed(1)}`
+  const cacheHeaders = { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800' }
+
+  const cached = await db
+    .select({ offices: officeCache.offices })
+    .from(officeCache)
+    .where(and(eq(officeCache.key, key), gt(officeCache.fetchedAt, new Date(Date.now() - CACHE_MAX_AGE_MS))))
+    .limit(1)
+    .catch((error) => {
+      console.error('[nearby] cache read failed', error)
+      return []
+    })
+  if (cached[0]) {
+    return Response.json({ offices: cached[0].offices as Office[], radiusKm: 50 }, { headers: cacheHeaders })
+  }
+
   const offices = new Map<string, Office>()
   let failures = 0
   for (const [i, s] of SEARCHES.entries()) {
@@ -103,8 +125,13 @@ export async function GET(req: Request) {
   if (failures === SEARCHES.length) {
     return Response.json({ error: 'map_service_unavailable' }, { status: 503 })
   }
-  return Response.json(
-    { offices: [...offices.values()], radiusKm: 50 },
-    { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800' } },
-  )
+  const result = [...offices.values()]
+  if (failures === 0) {
+    await db
+      .insert(officeCache)
+      .values({ key, offices: result, fetchedAt: new Date() })
+      .onConflictDoUpdate({ target: officeCache.key, set: { offices: result, fetchedAt: new Date() } })
+      .catch((error) => console.error('[nearby] cache write failed', error))
+  }
+  return Response.json({ offices: result, radiusKm: 50 }, { headers: cacheHeaders })
 }
