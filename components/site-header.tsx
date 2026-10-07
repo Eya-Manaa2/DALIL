@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone } from 'lucide-react'
+import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search } from 'lucide-react'
 import type { UIKey } from '@/lib/i18n'
 import { hotlines } from '@/lib/services-data'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ const navLinks: { href: string; key: UIKey; icon: typeof Home }[] = [
   { href: '/services', key: 'navCatalog', icon: LayoutGrid },
   { href: '/carte', key: 'navMap', icon: MapPin },
   { href: '/assistant', key: 'navVoice', icon: Mic },
+  { href: '/suivi', key: 'navNearby', icon: Search },
   { href: '/sans-internet', key: 'navOffline', icon: Smartphone },
 ]
 
@@ -119,7 +120,7 @@ export function MobileTabBar() {
       aria-label={t('mainNav')}
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-6">
         {navLinks.map((l) => {
           const active = isActive(pathname, l.href)
           const Icon = l.icon

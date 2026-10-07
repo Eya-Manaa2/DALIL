@@ -1,4 +1,4 @@
-import { integer, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { integer, jsonb, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const rateLimits = pgTable(
   'rate_limits',
@@ -28,4 +28,15 @@ export const fieldReports = pgTable('field_reports', {
   kind: text('kind').notNull(),
   details: text('details'),
   status: text('status').notNull().default('new'),
+})
+
+export const applications = pgTable('applications', {
+  id: serial('id').primaryKey(),
+  trackingCode: text('tracking_code').unique().notNull(),
+  userData: jsonb('user_data').notNull(),
+  serviceId: text('service_id').notNull(),
+  status: text('status').notNull().default('draft'),
+  steps: jsonb('steps').notNull().default('[]'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

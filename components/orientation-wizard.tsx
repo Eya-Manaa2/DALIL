@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Check, FileDown, MapPin, RotateCcw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Copy, FileDown, MapPin, RotateCcw } from 'lucide-react'
 import { ficheQuery } from '@/lib/fiche'
 import { audiences, governorates, matchServices, needs, type Audience, type Need } from '@/lib/services-data'
 import { trackUsage } from '@/lib/tracking'
@@ -12,6 +12,16 @@ import { ServiceCard } from './service-card'
 import { ShareActions } from './share-actions'
 
 const TOTAL = 3
+
+// Generate a random tracking code
+function generateTrackingCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
 
 export function OrientationWizard({
   initialAudience,
@@ -26,6 +36,8 @@ export function OrientationWizard({
   const [selectedNeeds, setSelectedNeeds] = useState<Need[]>([])
   const [gov, setGov] = useState('')
   const [done, setDone] = useState(false)
+  const [trackingCode, setTrackingCode] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const Prev = lang === 'ar' ? ArrowRight : ArrowLeft
   const Next = lang === 'ar' ? ArrowLeft : ArrowRight
@@ -164,6 +176,8 @@ export function OrientationWizard({
                 onClick={() => {
                   if (step < TOTAL) return setStep((s) => s + 1)
                   setDone(true)
+                  // Generate tracking code
+                  setTrackingCode(generateTrackingCode())
                   trackUsage({
                     source: 'wizard',
                     audience,
@@ -205,10 +219,41 @@ export function OrientationWizard({
             </div>
 
             {results.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm font-semibold text-foreground">{t('shareLabel')} :</p>
-                <ShareActions path={fichePath} />
-              </div>
+              <>
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm font-semibold text-foreground">{t('shareLabel')} :</p>
+                  <ShareActions path={fichePath} />
+                </div>
+
+                {trackingCode && (
+                  <div className="rounded-2xl bg-primary/10 p-4">
+                    <p className="mb-2 text-sm font-semibold text-primary">
+                      {lang === 'fr' ? 'Code de suivi' : 'رمز المتابعة'}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <code className="rounded-lg bg-primary px-4 py-2 text-2xl font-mono text-primary-foreground">
+                        {trackingCode}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(trackingCode)
+                          setCopied(true)
+                          setTimeout(() => setCopied(false), 2000)
+                        }}
+                        className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                      >
+                        <Copy className="size-4" />
+                        {copied ? (lang === 'fr' ? 'Copié!' : 'تم النسخ!') : (lang === 'fr' ? 'Copier' : 'نسخ')}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-sm text-primary/80">
+                      {lang === 'fr'
+                        ? 'Utilisez ce code pour suivre l\'état de votre demande sur la page "Suivi"'
+                        : 'استخدم هذا الرمز لمتابعة حالة طلبك في صفحة "المتابعة"'}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="grid gap-6 lg:grid-cols-3">

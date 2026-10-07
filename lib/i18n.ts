@@ -12,6 +12,7 @@ export const ui = {
   navHome: { fr: 'Accueil', ar: 'الرئيسية' },
   navMap: { fr: 'Carte', ar: 'الخريطة' },
   navVoice: { fr: 'Parler', ar: 'احكي' },
+  navNearby: { fr: 'Suivi', ar: 'متابعة' },
   navOffline: { fr: 'Sans internet', ar: 'بلا إنترنت' },
   navDashboard: { fr: 'Tableau de bord', ar: 'لوحة القيادة' },
   navPresentation: { fr: 'Présentation du projet', ar: 'تقديم المشروع' },
