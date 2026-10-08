@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search, User } from 'lucide-react'
+import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search, User, FileText, Printer } from 'lucide-react'
 import type { UIKey } from '@/lib/i18n'
 import { hotlines } from '@/lib/services-data'
 import { cn } from '@/lib/utils'
@@ -15,6 +15,8 @@ const navLinks: { href: string; key: UIKey; icon: typeof Home }[] = [
   { href: '/carte', key: 'navMap', icon: MapPin },
   { href: '/assistant', key: 'navVoice', icon: Mic },
   { href: '/suivi', key: 'navNearby', icon: Search },
+  { href: '/formulaire', key: 'navForm', icon: FileText },
+  { href: '/generer-dossier', key: 'navDossier', icon: Printer },
   { href: '/sans-internet', key: 'navOffline', icon: Smartphone },
 ]
 
