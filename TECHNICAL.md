@@ -286,6 +286,46 @@ export const usageEvents = pgTable('usage_events', {
 - Configuré dans `next.config.mjs`
 - Origines autorisées en production
 
+### 5. Authentification et Autorisation
+
+#### POC (Phase Hackathon)
+- **Système actuel**: Sélection de rôle simple via `/select-role`
+- **Stockage**: localStorage (client-side)
+- **Avantages**: Facilite les tests, pas de mot de passe à gérer
+- **Limitations**: Pas de véritable sécurité, à des fins de démonstration uniquement
+
+#### Production (Déploiement Institutionnel)
+**Intégration avec le SSO du Ministère des Affaires Sociales:**
+
+1. **Protocole**: SAML 2.0 ou OpenID Connect
+2. **Provider**: Système d'identité du MAS
+3. **Flux**:
+   - Redirection vers le SSO du MAS
+   - Authentification MFA (multi-factor)
+   - Token JWT avec claims de rôle
+   - Validation du token côté serveur
+   - Role-Based Access Control (RBAC)
+
+4. **Rôles prévus**:
+   - **Admin**: Accès complet au dashboard
+   - **Intervenant Social**: Gestion des dossiers assignés
+   - **Superviseur**: Validation et approbation
+   - **Citoyen**: Accès limité à ses propres demandes
+
+5. **Mesures de sécurité**:
+   - JWT avec expiration courte (15 min)
+   - Refresh tokens rotation
+   - Rate limiting sur endpoints d'auth
+   - Audit logging de toutes les actions
+   - Device-level signals (vérification de l'appareil)
+   - Conformité RGPD + loi tunisienne sur la protection des données
+
+6. **Roadmap d'implémentation**:
+   - Phase 1: Intégration SSO MAS (3-4 mois)
+   - Phase 2: MFA obligatoire (1 mois)
+   - Phase 3: Audit logging complet (1 mois)
+   - Phase 4: Device-level signals (2 mois)
+
 ## Performance
 
 ### Optimisations
