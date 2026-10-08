@@ -5,10 +5,10 @@ import { eq } from 'drizzle-orm'
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await context.params
+    const { id } = params
     const body = await req.json()
     const { status, notes } = body
 
