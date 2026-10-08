@@ -13,10 +13,13 @@ export default function GenererDossierPage() {
   const trackingCode = searchParams.get('trackingCode')
   const [application, setApplication] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [manualCode, setManualCode] = useState('')
 
   useEffect(() => {
     if (trackingCode) {
       fetchApplication(trackingCode)
+    } else {
+      setLoading(false)
     }
   }, [trackingCode])
 
@@ -31,6 +34,13 @@ export default function GenererDossierPage() {
       console.error('Error fetching application:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleManualFetch = () => {
+    if (manualCode) {
+      setLoading(true)
+      fetchApplication(manualCode)
     }
   }
 
@@ -54,11 +64,38 @@ export default function GenererDossierPage() {
           <h1 className="font-heading text-2xl font-bold text-foreground">
             {lang === 'fr' ? 'Dossier non trouvé' : 'الملف غير موجود'}
           </h1>
-          <p className="mt-2 text-muted-foreground">
-            {lang === 'fr'
-              ? 'Aucun dossier trouvé pour ce code de suivi'
-              : 'لا يوجد ملف لهذا الرمز'}
-          </p>
+          {trackingCode ? (
+            <p className="mt-2 text-muted-foreground">
+              {lang === 'fr'
+                ? 'Aucun dossier trouvé pour ce code de suivi'
+                : 'لا يوجد ملف لهذا الرمز'}
+            </p>
+          ) : (
+            <div className="mt-4">
+              <p className="mb-4 text-muted-foreground">
+                {lang === 'fr'
+                  ? 'Entrez votre code de suivi pour générer votre dossier'
+                  : 'أدخل رمز المتابعة لإنشاء ملفك'}
+              </p>
+              <div className="mx-auto max-w-sm">
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                  placeholder={lang === 'fr' ? 'Code de suivi' : 'رمز المتابعة'}
+                  className="w-full rounded-xl border-2 border-border bg-background px-4 py-3 text-lg focus:border-primary focus:outline-none"
+                  maxLength={10}
+                />
+                <button
+                  onClick={handleManualFetch}
+                  disabled={!manualCode}
+                  className="mt-3 w-full rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  {lang === 'fr' ? 'Générer' : 'إنشاء'}
+                </button>
+              </div>
+            </div>
+          )}
           <Link
             href="/suivi"
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground hover:opacity-90"
