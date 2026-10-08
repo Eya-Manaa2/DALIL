@@ -12,6 +12,7 @@ export default function FormulairePage() {
   const searchParams = useSearchParams()
   const serviceId = searchParams.get('service') || 'amen'
   const [trackingCode, setTrackingCode] = useState<string | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
 
   useEffect(() => {
     const code = searchParams.get('trackingCode')
@@ -33,6 +34,9 @@ export default function FormulairePage() {
       const result = await res.json()
       if (result.trackingCode) {
         setTrackingCode(result.trackingCode)
+      }
+      if (data.uploadedFiles) {
+        setUploadedFiles(data.uploadedFiles)
       }
     } catch (error) {
       console.error('Save error:', error)
@@ -65,6 +69,7 @@ export default function FormulairePage() {
           serviceId={serviceId}
           onSave={handleSave}
           trackingCode={trackingCode || undefined}
+          initialUploadedFiles={uploadedFiles}
         />
 
         {trackingCode && (

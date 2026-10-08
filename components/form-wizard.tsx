@@ -5,14 +5,16 @@ import { ChevronLeft, ChevronRight, Save, CheckCircle, AlertCircle } from 'lucid
 import { formSchemas, type FormField, type FormSchema } from '@/lib/form-schemas'
 import { useLang } from './lang-provider'
 import { cn } from '@/lib/utils'
+import { FileUpload } from './file-upload'
 
 interface FormWizardProps {
   serviceId: string
   onSave: (data: any) => void
   trackingCode?: string
+  initialUploadedFiles?: Record<string, File[]>
 }
 
-export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps) {
+export function FormWizard({ serviceId, onSave, trackingCode, initialUploadedFiles }: FormWizardProps) {
   const { t, tr, lang } = useLang()
   const schema = formSchemas[serviceId]
   const [step, setStep] = useState(0)
@@ -20,6 +22,7 @@ export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>(initialUploadedFiles || {})
 
   if (!schema) {
     return (
@@ -33,8 +36,9 @@ export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps)
   }
 
   const fieldsPerStep = 4
-  const totalSteps = Math.ceil(schema.fields.length / fieldsPerStep)
+  const totalSteps = Math.ceil(schema.fields.length / fieldsPerStep) + 1 // +1 for documents step
   const currentFields = schema.fields.slice(step * fieldsPerStep, (step + 1) * fieldsPerStep)
+  const isDocumentsStep = step === totalSteps - 1
 
   const validateField = (field: FormField, value: any): string | null => {
     if (field.required && (!value || value === '')) {
@@ -73,6 +77,10 @@ export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps)
       delete newErrors[fieldId]
       return newErrors
     })
+  }
+
+  const handleFileUpload = (documentType: string, files: File[]) => {
+    setUploadedFiles((prev) => ({ ...prev, [documentType]: files }))
   }
 
   const validateCurrentStep = (): boolean => {
@@ -114,6 +122,7 @@ export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps)
         serviceId,
         formData,
         trackingCode,
+        uploadedFiles,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -204,7 +213,9 @@ export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps)
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-medium text-foreground">
-              {lang === 'fr' ? 'Étape' : 'المرحلة'} {step + 1} / {totalSteps}
+              {isDocumentsStep
+                ? (lang === 'fr' ? 'Documents' : 'الوثائق')
+                : (lang === 'fr' ? 'Étape' : 'المرحلة')} {step + 1} / {totalSteps}
             </span>
             <span className="text-muted-foreground">
               {Math.round(((step + 1) / totalSteps) * 100)}%
@@ -219,9 +230,40 @@ export function FormWizard({ serviceId, onSave, trackingCode }: FormWizardProps)
         </div>
 
         {/* Form Fields */}
-        <div className="space-y-4">
-          {currentFields.map(renderField)}
-        </div>
+        {!isDocumentsStep && (
+          <div className="space-y-4">
+            {currentFields.map(renderField)}
+          </div>
+        )}
+
+        {/* Documents Step */}
+        {isDocumentsStep && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {lang === 'fr'
+                ? 'Veuillez déposer les documents requis pour votre demande.'
+                : 'يرجى رفع الوثائق المطلوبة لطلبك.'}
+            </p>
+            <FileUpload
+              documentType="cin"
+              documentLabel={{ fr: 'Carte d\'identité (CIN)', ar: 'بطاقة التعريف الوطنية' }}
+              uploadedFiles={uploadedFiles['cin'] || []}
+              onUpload={(files) => handleFileUpload('cin', files)}
+            />
+            <FileUpload
+              documentType="residence"
+              documentLabel={{ fr: 'Certificat de résidence', ar: 'شهادة إقامة' }}
+              uploadedFiles={uploadedFiles['residence'] || []}
+              onUpload={(files) => handleFileUpload('residence', files)}
+            />
+            <FileUpload
+              documentType="income"
+              documentLabel={{ fr: 'Justificatif de revenu', ar: 'ما يثبت الدخل' }}
+              uploadedFiles={uploadedFiles['income'] || []}
+              onUpload={(files) => handleFileUpload('income', files)}
+            />
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="mt-6 flex items-center justify-between gap-3">

@@ -8,7 +8,7 @@ export const maxDuration = 30
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { serviceId, formData, trackingCode } = body
+    const { serviceId, formData, trackingCode, uploadedFiles } = body
 
     if (!serviceId || !formData) {
       return NextResponse.json(
@@ -20,12 +20,25 @@ export async function POST(req: NextRequest) {
     // If tracking code provided, update existing application
     if (trackingCode) {
       try {
+        const updateData: any = {
+          userData: formData,
+          updatedAt: new Date(),
+        }
+
+        // Add uploaded files info to userData
+        if (uploadedFiles) {
+          updateData.userData = {
+            ...formData,
+            uploadedFiles: Object.entries(uploadedFiles).reduce((acc, [type, files]) => {
+              acc[type] = files.map((f: File) => ({ name: f.name, size: f.size, type: f.type }))
+              return acc
+            }, {} as Record<string, any>),
+          }
+        }
+
         await db
           .update(applications)
-          .set({
-            userData: formData,
-            updatedAt: new Date(),
-          })
+          .set(updateData)
           .where(eq(applications.trackingCode, trackingCode))
 
         return NextResponse.json({
@@ -44,15 +57,27 @@ export async function POST(req: NextRequest) {
     // Create initial steps
     const steps = [
       { name: { fr: 'Formulaire rempli', ar: 'نموذج مملوء' }, completed: true, date: new Date().toISOString() },
+      { name: { fr: 'Documents téléversés', ar: 'تم رفع الوثائق' }, completed: !!uploadedFiles && Object.keys(uploadedFiles).length > 0, date: new Date().toISOString() },
       { name: { fr: 'En attente de soumission', ar: 'في انتظار التقديم' }, completed: false },
       { name: { fr: 'Examen du dossier', ar: 'فحص الملف' }, completed: false },
     ]
+
+    // Prepare user data with files info
+    const userDataWithFiles = uploadedFiles
+      ? {
+          ...formData,
+          uploadedFiles: Object.entries(uploadedFiles).reduce((acc, [type, files]) => {
+            acc[type] = files.map((f: File) => ({ name: f.name, size: f.size, type: f.type }))
+            return acc
+          }, {} as Record<string, any>),
+        }
+      : formData
 
     // Create new application
     try {
       await db.insert(applications).values({
         trackingCode: newTrackingCode,
-        userData: formData,
+        userData: userDataWithFiles,
         serviceId,
         status: 'draft',
         steps,
