@@ -5,10 +5,10 @@ import { eq } from 'drizzle-orm'
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ code: string }> }
+  { params }: { params: { code: string } }
 ) {
   try {
-    const { code } = await context.params
+    const { code } = params
 
     // Validate tracking code format
     if (!code || !/^[A-Z0-9]{6,10}$/.test(code)) {
