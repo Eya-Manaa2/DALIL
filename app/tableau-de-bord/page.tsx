@@ -1,17 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, CheckCircle, Clock, AlertCircle, FileText, Users, TrendingUp } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, Filter, CheckCircle, Clock, AlertCircle, FileText, Users, TrendingUp, Shield } from 'lucide-react'
 import { useLang } from '@/components/lang-provider'
 import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
   const { t, lang } = useLang()
+  const router = useRouter()
   const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterService, setFilterService] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    const role = localStorage.getItem('dalil-role')
+    if (role !== 'admin') {
+      router.push('/select-role')
+    }
+  }, [])
 
   useEffect(() => {
     fetchApplications()

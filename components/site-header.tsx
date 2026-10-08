@@ -2,8 +2,8 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search, User } from 'lucide-react'
 import type { UIKey } from '@/lib/i18n'
 import { hotlines } from '@/lib/services-data'
 import { cn } from '@/lib/utils'
@@ -53,6 +53,11 @@ function isActive(pathname: string, href: string) {
 export function SiteHeader() {
   const { t, toggle, lang } = useLang()
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleChangeRole = () => {
+    router.push('/select-role')
+  }
 
   return (
     <header className="sticky top-0 z-30 print:hidden">
@@ -104,6 +109,16 @@ export function SiteHeader() {
           >
             <Languages className="size-4" aria-hidden />
             <span lang={lang === 'fr' ? 'ar' : 'fr'}>{t('switchLang')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleChangeRole}
+            aria-label={lang === 'fr' ? 'Changer de rôle' : 'تغيير الدور'}
+            className="flex shrink-0 items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
+            title={lang === 'fr' ? 'Changer de rôle' : 'تغيير الدور'}
+          >
+            <User className="size-4" aria-hidden />
+            <span>{lang === 'fr' ? 'Rôle' : 'الدور'}</span>
           </button>
         </div>
       </div>
