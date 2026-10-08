@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, AlertCircle, CheckCircle, Clock, FileText } from 'lucide-react'
+import { Search, AlertCircle, CheckCircle, Clock, FileText, Printer } from 'lucide-react'
 import { useLang } from '@/components/lang-provider'
 
 export default function SuiviPage() {
@@ -159,6 +159,16 @@ export default function SuiviPage() {
                     {lang === 'fr' ? 'Prochaine action' : 'الإجراء التالي'}
                   </p>
                   <p className="mt-1 text-sm text-primary/90">{application.nextAction[lang]}</p>
+                </div>
+
+                <div className="mt-4">
+                  <Link
+                    href={`/generer-dossier?trackingCode=${application.trackingCode}`}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                  >
+                    <FileText className="size-4" />
+                    {lang === 'fr' ? 'Générer mon dossier' : 'إنشاء ملفي'}
+                  </Link>
                 </div>
               )}
             </div>
