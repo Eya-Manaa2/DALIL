@@ -45,6 +45,21 @@ export default function RootLayout({
           <MobileTabBar />
         </LangProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Unregister any existing service workers
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                  registrations.forEach((registration) => {
+                    registration.unregister()
+                    console.log('Service Worker unregistered')
+                  })
+                })
+              }
+            `,
+          }}
+        />
         {process.env.NODE_ENV === 'production' && (
           <script
             dangerouslySetInnerHTML={{
