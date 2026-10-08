@@ -1,22 +1,24 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search, User, FileText, Printer } from 'lucide-react'
+import { Home, Languages, LayoutGrid, MapPin, Mic, Phone, Smartphone, Search, User, FileText, Printer, Shield } from 'lucide-react'
 import type { UIKey } from '@/lib/i18n'
 import { hotlines } from '@/lib/services-data'
 import { cn } from '@/lib/utils'
 import { useLang } from './lang-provider'
 
-const navLinks: { href: string; key: UIKey; icon: typeof Home }[] = [
+const allNavLinks: { href: string; key: UIKey; icon: typeof Home; adminOnly?: boolean }[] = [
   { href: '/', key: 'navHome', icon: Home },
   { href: '/services', key: 'navCatalog', icon: LayoutGrid },
   { href: '/carte', key: 'navMap', icon: MapPin },
   { href: '/assistant', key: 'navVoice', icon: Mic },
-  { href: '/suivi', key: 'navNearby', icon: Search },
   { href: '/formulaire', key: 'navForm', icon: FileText },
-  { href: '/generer-dossier', key: 'navDossier', icon: Printer },
+  { href: '/suivi', key: 'navNearby', icon: Search },
+  { href: '/generer-dossier', key: 'navGenerate', icon: Printer },
+  { href: '/tableau-de-bord', key: 'navDashboard', icon: Shield, adminOnly: true },
   { href: '/sans-internet', key: 'navOffline', icon: Smartphone },
 ]
 
@@ -56,6 +58,14 @@ export function SiteHeader() {
   const { t, toggle, lang } = useLang()
   const pathname = usePathname()
   const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const role = localStorage.getItem('dalil-role')
+    setIsAdmin(role === 'admin')
+  }, [])
+
+  const navLinks = allNavLinks.filter(link => !link.adminOnly || isAdmin)
 
   const handleChangeRole = () => {
     router.push('/select-role')
@@ -131,6 +141,14 @@ export function SiteHeader() {
 export function MobileTabBar() {
   const { t } = useLang()
   const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const role = localStorage.getItem('dalil-role')
+    setIsAdmin(role === 'admin')
+  }, [])
+
+  const mobileNavLinks = allNavLinks.filter(link => !link.adminOnly || isAdmin).slice(0, 6)
 
   return (
     <nav
@@ -138,7 +156,7 @@ export function MobileTabBar() {
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       <ul className="grid grid-cols-6">
-        {navLinks.map((l) => {
+        {mobileNavLinks.map((l) => {
           const active = isActive(pathname, l.href)
           const Icon = l.icon
           return (
