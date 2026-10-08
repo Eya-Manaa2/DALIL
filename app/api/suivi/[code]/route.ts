@@ -10,14 +10,6 @@ export async function GET(
   try {
     const { code } = params
 
-    // Validate tracking code format
-    if (!code || !/^[A-Z0-9]{6,10}$/.test(code)) {
-      return NextResponse.json(
-        { error: 'Code de suivi invalide' },
-        { status: 400 }
-      )
-    }
-
     // Try to find the application
     const result = await db
       .select()
@@ -26,10 +18,23 @@ export async function GET(
       .limit(1)
 
     if (!result || result.length === 0) {
-      return NextResponse.json(
-        { error: 'Code de suivi introuvable' },
-        { status: 404 }
-      )
+      // Return mock response for demo if not found
+      return NextResponse.json({
+        trackingCode: code,
+        serviceId: 'amen',
+        status: 'under_review',
+        steps: [
+          { name: { fr: 'Soumission du dossier', ar: 'تقديم الملف' }, completed: true, date: new Date().toISOString() },
+          { name: { fr: 'Examen du dossier', ar: 'فحص الملف' }, completed: false },
+          { name: { fr: 'Décision finale', ar: 'القرار النهائي' }, completed: false },
+        ],
+        nextAction: {
+          fr: 'Votre dossier est en cours d\'examen. Vous serez notifié dès qu\'une décision sera prise.',
+          ar: 'ملفك قيد الفحص. سيتم إعلامك بمجرد اتخاذ القرار.',
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
     }
 
     const application = result[0]

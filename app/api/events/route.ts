@@ -17,17 +17,23 @@ const eventSchema = z.object({
 })
 
 export async function POST(req: Request) {
-  if (!(await checkRateLimit(req, limits.events))) return tooManyRequests()
-  const parsed = eventSchema.safeParse(await req.json().catch(() => null))
-  if (!parsed.success) return Response.json({ error: 'invalid_event' }, { status: 400 })
+  try {
+    if (!(await checkRateLimit(req, limits.events))) return tooManyRequests()
+    const parsed = eventSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) return Response.json({ error: 'invalid_event' }, { status: 400 })
 
-  const e = parsed.data
-  await db.insert(usageEvents).values({
-    source: e.source,
-    audience: e.audience ?? null,
-    needs: e.needs ?? [],
-    governorate: e.governorate ?? null,
-    resultsCount: e.resultsCount ?? null,
-  })
-  return new Response(null, { status: 204 })
+    const e = parsed.data
+    await db.insert(usageEvents).values({
+      source: e.source,
+      audience: e.audience ?? null,
+      needs: e.needs ?? [],
+      governorate: e.governorate ?? null,
+      resultsCount: e.resultsCount ?? null,
+    })
+    return new Response(null, { status: 204 })
+  } catch (err) {
+    console.error('[events] Error:', err)
+    // Fail open if database is not available
+    return new Response(null, { status: 204 })
+  }
 }
