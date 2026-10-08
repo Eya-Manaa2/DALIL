@@ -5,10 +5,10 @@ import { eq } from 'drizzle-orm'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ code: string }> }
+  context: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = await params
+    const { code } = await context.params
 
     // Validate tracking code format
     if (!code || !/^[A-Z0-9]{6,10}$/.test(code)) {
@@ -50,7 +50,7 @@ export async function GET(
     console.error('[suivi] Error:', error)
     // If database is not available, return a mock response for demo
     return NextResponse.json({
-      trackingCode: params.code,
+      trackingCode: code,
       serviceId: 'amen',
       status: 'under_review',
       steps: [

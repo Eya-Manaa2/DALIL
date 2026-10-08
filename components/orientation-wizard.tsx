@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Check, Copy, FileDown, MapPin, RotateCcw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Copy, FileDown, FileText, MapPin, RotateCcw } from 'lucide-react'
 import { ficheQuery } from '@/lib/fiche'
 import { audiences, governorates, matchServices, needs, type Audience, type Need } from '@/lib/services-data'
 import { trackUsage } from '@/lib/tracking'
@@ -30,7 +30,7 @@ export function OrientationWizard({
   initialAudience?: Audience
   onExit?: () => void
 }) {
-  const { t, tr, lang } = useLang()
+  const { t, tr, lang: currentLang } = useLang()
   const [step, setStep] = useState(initialAudience ? 2 : 1)
   const [audience, setAudience] = useState<Audience | null>(initialAudience ?? null)
   const [selectedNeeds, setSelectedNeeds] = useState<Need[]>([])
@@ -39,8 +39,8 @@ export function OrientationWizard({
   const [trackingCode, setTrackingCode] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const Prev = lang === 'ar' ? ArrowRight : ArrowLeft
-  const Next = lang === 'ar' ? ArrowLeft : ArrowRight
+  const Prev = currentLang === 'ar' ? ArrowRight : ArrowLeft
+  const Next = currentLang === 'ar' ? ArrowLeft : ArrowRight
 
   const canContinue = (step === 1 && audience) || (step === 2 && selectedNeeds.length > 0) || (step === 3 && gov)
 
@@ -59,7 +59,7 @@ export function OrientationWizard({
   const govLabel = governorates.find((g) => g.fr === gov)
   const results = done ? matchServices(audience, selectedNeeds) : []
   const showsChild = audience === 'child'
-  const fichePath = `/fiche?${ficheQuery({ audience, needs: selectedNeeds, gov, lang })}`
+  const fichePath = `/fiche?${ficheQuery({ audience, needs: selectedNeeds, gov, lang: currentLang })}`
 
   return (
     <section id="guide" aria-labelledby="guide-title" className="bg-secondary">
@@ -207,6 +207,13 @@ export function OrientationWizard({
                   <FileDown className="size-4" aria-hidden />
                   {t('ficheOpen')}
                 </Link>
+                <Link
+                  href={`/formulaire?service=${results[0]?.id || 'amen'}&trackingCode=${trackingCode || ''}`}
+                  className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  <FileText className="size-4" aria-hidden />
+                  {currentLang === 'fr' ? 'Remplir le formulaire' : 'املأ النموذج'}
+                </Link>
                 <button
                   type="button"
                   onClick={reset}
@@ -228,7 +235,7 @@ export function OrientationWizard({
                 {trackingCode && (
                   <div className="rounded-2xl bg-primary/10 p-4">
                     <p className="mb-2 text-sm font-semibold text-primary">
-                      {lang === 'fr' ? 'Code de suivi' : 'رمز المتابعة'}
+                      {currentLang === 'fr' ? 'Code de suivi' : 'رمز المتابعة'}
                     </p>
                     <div className="flex items-center gap-3">
                       <code className="rounded-lg bg-primary px-4 py-2 text-2xl font-mono text-primary-foreground">
@@ -243,11 +250,11 @@ export function OrientationWizard({
                         className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
                       >
                         <Copy className="size-4" />
-                        {copied ? (lang === 'fr' ? 'Copié!' : 'تم النسخ!') : (lang === 'fr' ? 'Copier' : 'نسخ')}
+                        {copied ? (currentLang === 'fr' ? 'Copié!' : 'تم النسخ!') : (currentLang === 'fr' ? 'Copier' : 'نسخ')}
                       </button>
                     </div>
                     <p className="mt-2 text-sm text-primary/80">
-                      {lang === 'fr'
+                      {currentLang === 'fr'
                         ? 'Utilisez ce code pour suivre l\'état de votre demande sur la page "Suivi"'
                         : 'استخدم هذا الرمز لمتابعة حالة طلبك في صفحة "المتابعة"'}
                     </p>
