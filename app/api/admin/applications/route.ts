@@ -36,10 +36,7 @@ export async function GET(req: NextRequest) {
           serviceId: 'amen',
           status: 'under_review',
           userData: { nom: 'Test User', cin: '12345678' },
-          steps: [
-            { name: { fr: 'Formulaire rempli', ar: 'نموذج مملوء' }, completed: true, date: new Date().toISOString() },
-            { name: { fr: 'Documents téléversés', ar: 'تم رفع الوثائق' }, completed: true, date: new Date().toISOString() },
-          ],
+          steps: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -49,29 +46,12 @@ export async function GET(req: NextRequest) {
           serviceId: 'handicap',
           status: 'submitted',
           userData: { nom: 'Test User 2', cin: '87654321' },
-          steps: [
-            { name: { fr: 'Formulaire rempli', ar: 'نموذج مملوء' }, completed: true, date: new Date().toISOString() },
-          ],
+          steps: [],
           createdAt: new Date(Date.now() - 86400000).toISOString(),
           updatedAt: new Date().toISOString(),
         },
-        {
-          id: 3,
-          trackingCode: 'DEF24680',
-          serviceId: 'amen',
-          status: 'approved',
-          userData: { nom: 'Test User 3', cin: '11111111' },
-          steps: [
-            { name: { fr: 'Formulaire rempli', ar: 'نموذج مملوء' }, completed: true, date: new Date().toISOString() },
-            { name: { fr: 'Documents téléversés', ar: 'تم رفع الوثائق' }, completed: true, date: new Date().toISOString() },
-            { name: { fr: 'Examen commencé', ar: 'بدأ الفحص' }, completed: true, date: new Date().toISOString() },
-            { name: { fr: 'Approuvé', ar: 'موافق عليه' }, completed: true, date: new Date().toISOString() },
-          ],
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
       ],
-      total: 3,
+      total: 2,
     })
   }
 }

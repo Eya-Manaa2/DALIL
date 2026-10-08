@@ -45,21 +45,23 @@ export default function RootLayout({
           <MobileTabBar />
         </LangProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then(() => {
-                    console.log('Service Worker registered')
-                  }).catch((err) => {
-                    console.log('Service Worker registration failed', err)
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js').then(() => {
+                      console.log('Service Worker registered')
+                    }).catch((err) => {
+                      console.log('Service Worker registration failed', err)
+                    })
                   })
-                })
-              }
-            `,
-          }}
-        />
+                }
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   )
